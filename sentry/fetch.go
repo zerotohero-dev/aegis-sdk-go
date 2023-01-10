@@ -9,7 +9,6 @@
 package sentry
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -19,35 +18,12 @@ import (
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"github.com/zerotohero-dev/aegis-core/entity/reqres/v1"
 	"github.com/zerotohero-dev/aegis-core/validation"
-	"github.com/zerotohero-dev/aegis-sdk-go/env"
+	"github.com/zerotohero-dev/aegis-sdk-go/internal/env"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 )
-
-func saveData(data string) error {
-	path := env.SidecarSecretsPath()
-
-	f, err := os.Create(path)
-	if err != nil {
-		return errors.New("error saving data")
-	}
-
-	w := bufio.NewWriter(f)
-	_, err = w.WriteString(data)
-	if err != nil {
-		return errors.New("error saving data")
-	}
-
-	err = w.Flush()
-	if err != nil {
-		return errors.Wrap(err, "error flushing writer")
-	}
-
-	return nil
-}
 
 func Fetch() (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -137,9 +113,4 @@ func Fetch() (string, error) {
 
 	data := sfr.Data
 	return data, nil
-}
-
-func fetchSecrets() error {
-	data, _ := Fetch()
-	return saveData(data)
 }
