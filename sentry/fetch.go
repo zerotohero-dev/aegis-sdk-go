@@ -25,6 +25,12 @@ import (
 	"net/url"
 )
 
+// Fetch fetches the up-to-date secret that has been registered to the workload.
+//
+//     secret, err := sentry.Fetch()
+//
+// In case of a problem, Fetch will return an empty string and an error explaining
+// what went wrong.
 func Fetch() (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -39,7 +45,7 @@ func Fetch() (string, error) {
 
 	svid, err := source.GetX509SVID()
 	if err != nil {
-		return "", errors.Wrap(err, "malformed SVID")
+		return "", errors.Wrap(err, "error getting SVID from source")
 	}
 
 	defer func(source *workloadapi.X509Source) {
@@ -54,7 +60,7 @@ func Fetch() (string, error) {
 
 	// Make sure that we are calling Safe from a workload that Aegis knows about.
 	if !validation.IsWorkload(svid.ID.String()) {
-		log.Fatalf("Untrusted workload. Killing the container.")
+		return "", errors.New("untrusted workload")
 	}
 
 	authorizer := tlsconfig.AdaptMatcher(func(id spiffeid.ID) error {
@@ -67,7 +73,7 @@ func Fetch() (string, error) {
 
 	p, err := url.JoinPath(env.SafeEndpointUrl(), "/v1/fetch")
 	if err != nil {
-		log.Fatalf("Problem generating server url. Killing the container.")
+		return "", errors.New("problem generating server url")
 	}
 
 	tlsConfig := tlsconfig.MTLSClientConfig(source, source, authorizer)
