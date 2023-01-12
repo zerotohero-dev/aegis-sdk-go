@@ -16,7 +16,7 @@ import (
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
-	"github.com/zerotohero-dev/aegis-core/entity/reqres/v1"
+	reqres "github.com/zerotohero-dev/aegis-core/entity/reqres/v1"
 	"github.com/zerotohero-dev/aegis-core/validation"
 	"github.com/zerotohero-dev/aegis-sdk-go/internal/env"
 	"io"
@@ -27,7 +27,7 @@ import (
 
 // Fetch fetches the up-to-date secret that has been registered to the workload.
 //
-//     secret, err := sentry.Fetch()
+//	secret, err := sentry.Fetch()
 //
 // In case of a problem, Fetch will return an empty string and an error explaining
 // what went wrong.
@@ -48,15 +48,12 @@ func Fetch() (string, error) {
 		return "", errors.Wrap(err, "error getting SVID from source")
 	}
 
-	defer func(source *workloadapi.X509Source) {
-		if source == nil {
-			return
-		}
+	defer func() {
 		err := source.Close()
 		if err != nil {
 			log.Println("Problem closing the workload source.")
 		}
-	}(source)
+	}()
 
 	// Make sure that we are calling Safe from a workload that Aegis knows about.
 	if !validation.IsWorkload(svid.ID.String()) {
@@ -83,8 +80,7 @@ func Fetch() (string, error) {
 		},
 	}
 
-	sr := v1.SecretFetchRequest{}
-
+	sr := reqres.SecretFetchRequest{}
 	md, err := json.Marshal(sr)
 	if err != nil {
 		return "", errors.Wrap(err, "trouble generating payload")
@@ -95,28 +91,25 @@ func Fetch() (string, error) {
 		return "", errors.Wrap(err, "problem connecting to Aegis Safe API endpoint")
 	}
 
-	defer func(b io.ReadCloser) {
-		if b == nil {
-			return
-		}
-		err2 := b.Close()
+	defer func() {
+		err2 := r.Body.Close()
 		if err2 != nil {
 			log.Println("Problem closing response body.")
 		}
-	}(r.Body)
+	}()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to read the response body from Aegis Safe API endpoint")
+		return "", errors.Wrap(
+			err, "unable to read the response body from Aegis Safe API endpoint",
+		)
 	}
 
-	var sfr v1.SecretFetchResponse
-
+	var sfr reqres.SecretFetchResponse
 	err = json.Unmarshal(body, &sfr)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to deserialize response")
 	}
 
-	data := sfr.Data
-	return data, nil
+	return sfr.Data, nil
 }
