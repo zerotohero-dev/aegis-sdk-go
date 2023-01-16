@@ -11,7 +11,7 @@ package sentry
 import (
 	"bufio"
 	"github.com/pkg/errors"
-	"github.com/zerotohero-dev/aegis-sdk-go/internal/env"
+	"github.com/zerotohero-dev/aegis-core/env"
 	"os"
 )
 
