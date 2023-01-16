@@ -9,7 +9,7 @@
 package sentry
 
 import (
-	"github.com/zerotohero-dev/aegis-sdk-go/internal/env"
+	"github.com/zerotohero-dev/aegis-core/env"
 	"log"
 	"time"
 )

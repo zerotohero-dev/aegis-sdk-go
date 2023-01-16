@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/spiffe/go-spiffe/v2 v2.1.2
-	github.com/zerotohero-dev/aegis-core v0.5.3
+	github.com/zerotohero-dev/aegis-core v0.8.3
 )
 
 require (

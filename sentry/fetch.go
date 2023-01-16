@@ -17,8 +17,8 @@ import (
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	reqres "github.com/zerotohero-dev/aegis-core/entity/reqres/v1"
+	"github.com/zerotohero-dev/aegis-core/env"
 	"github.com/zerotohero-dev/aegis-core/validation"
-	"github.com/zerotohero-dev/aegis-sdk-go/internal/env"
 	"io"
 	"log"
 	"net/http"
@@ -35,25 +35,30 @@ func Fetch() (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var source *workloadapi.X509Source
+
 	source, err := workloadapi.NewX509Source(
-		ctx, workloadapi.WithClientOptions(workloadapi.WithAddr(env.SpiffeSocketUrl())),
+		ctx, workloadapi.WithClientOptions(
+			workloadapi.WithAddr(env.SpiffeSocketUrl()),
+		),
 	)
-
 	if err != nil {
-		return "", errors.Wrap(err, "failed getting SVID Bundle from the SPIRE Workload API")
-	}
-
-	svid, err := source.GetX509SVID()
-	if err != nil {
-		return "", errors.Wrap(err, "error getting SVID from source")
+		return "", errors.Wrap(
+			err, "failed getting SVID Bundle from the SPIRE Workload API",
+		)
 	}
 
 	defer func() {
 		err := source.Close()
 		if err != nil {
-			log.Println("Problem closing the workload source.")
+			log.Printf("problem closing source '%s'", err.Error())
 		}
 	}()
+
+	svid, err := source.GetX509SVID()
+	if err != nil {
+		return "", errors.Wrap(err, "error getting SVID from source")
+	}
 
 	// Make sure that we are calling Safe from a workload that Aegis knows about.
 	if !validation.IsWorkload(svid.ID.String()) {
@@ -73,10 +78,15 @@ func Fetch() (string, error) {
 		return "", errors.New("problem generating server url")
 	}
 
-	tlsConfig := tlsconfig.MTLSClientConfig(source, source, authorizer)
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
+			// Use the connection to serve a single http request only.
+			// This is not a web server; there is no need to keep the
+			// connection open for multiple requests. This will also
+			// save a good chunk of memory, especially when polling
+			// interval is shorter. [1]
+			DisableKeepAlives: true,
+			TLSClientConfig:   tlsconfig.MTLSClientConfig(source, source, authorizer),
 		},
 	}
 
@@ -92,11 +102,17 @@ func Fetch() (string, error) {
 	}
 
 	defer func() {
-		err2 := r.Body.Close()
-		if err2 != nil {
-			log.Println("Problem closing response body.")
+		err := r.Body.Close()
+		if err != nil {
+			if err != nil {
+				log.Printf("problem closing response body '%s'", err.Error())
+			}
 		}
 	}()
+
+	// Related to [1]. Hint the server that we wish to close the connection
+	// as soon as we are done with it.
+	r.Close = true
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
