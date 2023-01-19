@@ -16,6 +16,7 @@ import (
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
+	entity "github.com/zerotohero-dev/aegis-core/entity/data/v1"
 	reqres "github.com/zerotohero-dev/aegis-core/entity/reqres/v1"
 	"github.com/zerotohero-dev/aegis-core/env"
 	"github.com/zerotohero-dev/aegis-core/validation"
@@ -23,6 +24,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // Fetch fetches the up-to-date secret that has been registered to the workload.
@@ -31,7 +33,10 @@ import (
 //
 // In case of a problem, Fetch will return an empty string and an error explaining
 // what went wrong.
-func Fetch() (string, error) {
+//
+// Fetch can ONLY be called from a registered workload; and it ONLY delivers
+// the secret that the workload is associated with.
+func Fetch() (entity.SecretStored, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -43,7 +48,7 @@ func Fetch() (string, error) {
 		),
 	)
 	if err != nil {
-		return "", errors.Wrap(
+		return entity.SecretStored{}, errors.Wrap(
 			err, "failed getting SVID Bundle from the SPIRE Workload API",
 		)
 	}
@@ -57,12 +62,12 @@ func Fetch() (string, error) {
 
 	svid, err := source.GetX509SVID()
 	if err != nil {
-		return "", errors.Wrap(err, "error getting SVID from source")
+		return entity.SecretStored{}, errors.Wrap(err, "error getting SVID from source")
 	}
 
 	// Make sure that we are calling Safe from a workload that Aegis knows about.
 	if !validation.IsWorkload(svid.ID.String()) {
-		return "", errors.New("untrusted workload")
+		return entity.SecretStored{}, errors.New("untrusted workload")
 	}
 
 	authorizer := tlsconfig.AdaptMatcher(func(id spiffeid.ID) error {
@@ -75,7 +80,7 @@ func Fetch() (string, error) {
 
 	p, err := url.JoinPath(env.SafeEndpointUrl(), "/v1/fetch")
 	if err != nil {
-		return "", errors.New("problem generating server url")
+		return entity.SecretStored{}, errors.New("problem generating server url")
 	}
 
 	client := &http.Client{
@@ -93,12 +98,12 @@ func Fetch() (string, error) {
 	sr := reqres.SecretFetchRequest{}
 	md, err := json.Marshal(sr)
 	if err != nil {
-		return "", errors.Wrap(err, "trouble generating payload")
+		return entity.SecretStored{}, errors.Wrap(err, "trouble generating payload")
 	}
 
 	r, err := client.Post(p, "application/json", bytes.NewBuffer(md))
 	if err != nil {
-		return "", errors.Wrap(err, "problem connecting to Aegis Safe API endpoint")
+		return entity.SecretStored{}, errors.Wrap(err, "problem connecting to Aegis Safe API endpoint")
 	}
 
 	defer func() {
@@ -116,7 +121,7 @@ func Fetch() (string, error) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return "", errors.Wrap(
+		return entity.SecretStored{}, errors.Wrap(
 			err, "unable to read the response body from Aegis Safe API endpoint",
 		)
 	}
@@ -124,8 +129,13 @@ func Fetch() (string, error) {
 	var sfr reqres.SecretFetchResponse
 	err = json.Unmarshal(body, &sfr)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to deserialize response")
+		return entity.SecretStored{}, errors.Wrap(err, "unable to deserialize response")
 	}
 
-	return sfr.Data, nil
+	return entity.SecretStored{
+		Name:    "workload-secret",
+		Value:   sfr.Data,
+		Created: time.Time(sfr.Created),
+		Updated: time.Time(sfr.Updated),
+	}, nil
 }
