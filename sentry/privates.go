@@ -38,10 +38,10 @@ func saveData(data string) error {
 }
 
 func fetchSecrets() error {
-	data, _ := Fetch()
-	v := data.Value
+	r, _ := Fetch()
+	v := r.Data
 	if v == "" {
 		return nil
 	}
-	return saveData(data.Value)
+	return saveData(v)
 }
