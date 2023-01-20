@@ -25,6 +25,8 @@ import (
 	"net/url"
 )
 
+var ErrSecretNotFound = errors.New("Secret does not exist")
+
 // Fetch fetches the up-to-date secret that has been registered to the workload.
 //
 //	secret, err := sentry.Fetch()
@@ -121,6 +123,10 @@ func Fetch() (reqres.SecretFetchResponse, error) {
 	// Related to [1]. Hint the server that we wish to close the connection
 	// as soon as we are done with it.
 	r.Close = true
+
+	if r.StatusCode == http.StatusNotFound {
+		return reqres.SecretFetchResponse{}, ErrSecretNotFound
+	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {

@@ -22,6 +22,8 @@ github.com/zerotohero-dev/aegis-core v0.9.6 h1:V6W2ZIBt6pvqhR8LH1XDFxAJ1GBHVyOm3
 github.com/zerotohero-dev/aegis-core v0.9.6/go.mod h1:0zhADICaMfHfd3FZViDQ8EOpNmloRR0EzsdjqyLfK8s=
 github.com/zerotohero-dev/aegis-core v0.9.8 h1:fYaMjwUfy3mWAkFM5bszepxZxKfMPiqQGwWKuOOqk5I=
 github.com/zerotohero-dev/aegis-core v0.9.8/go.mod h1:0zhADICaMfHfd3FZViDQ8EOpNmloRR0EzsdjqyLfK8s=
+github.com/zerotohero-dev/aegis-core v0.9.9 h1:omBnXdCzrY5pe1/RAd/2QY+YFW+Fdhq3U04JdOS78zU=
+github.com/zerotohero-dev/aegis-core v0.9.9/go.mod h1:0zhADICaMfHfd3FZViDQ8EOpNmloRR0EzsdjqyLfK8s=
 golang.org/x/crypto v0.5.0 h1:U/0M97KRkSFvyD/3FSmdP5W5swImpNgle/EHFhOsQPE=
 golang.org/x/crypto v0.5.0/go.mod h1:NK/OQwhpMQP3MwtdjgLlYHnH9ebylxKWv3e0fK+mkQU=
 golang.org/x/mod v0.7.0 h1:LapD9S96VoQRhi/GrNTqeBJFrUjs5UHCAtTlgwA5oZA=
