@@ -18,9 +18,9 @@ import (
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	reqres "github.com/zerotohero-dev/aegis-core/entity/reqres/v1"
 	"github.com/zerotohero-dev/aegis-core/env"
+	"github.com/zerotohero-dev/aegis-core/log"
 	"github.com/zerotohero-dev/aegis-core/validation"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 )
@@ -56,7 +56,7 @@ func Fetch() (reqres.SecretFetchResponse, error) {
 	defer func() {
 		err := source.Close()
 		if err != nil {
-			log.Printf("problem closing source '%s'", err.Error())
+			log.InfoLn("problem closing source: ", err.Error())
 		}
 	}()
 
@@ -115,7 +115,7 @@ func Fetch() (reqres.SecretFetchResponse, error) {
 		err := r.Body.Close()
 		if err != nil {
 			if err != nil {
-				log.Printf("problem closing response body '%s'", err.Error())
+				log.InfoLn("problem closing response body: ", err.Error())
 			}
 		}
 	}()
