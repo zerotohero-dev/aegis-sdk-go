@@ -20,13 +20,13 @@ func saveData(data string) error {
 
 	f, err := os.Create(path)
 	if err != nil {
-		return errors.New("error saving data")
+		return errors.Wrap(err, "error saving data")
 	}
 
 	w := bufio.NewWriter(f)
 	_, err = w.WriteString(data)
 	if err != nil {
-		return errors.New("error saving data")
+		return errors.Wrap(err, "error saving data")
 	}
 
 	err = w.Flush()
