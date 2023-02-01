@@ -10,7 +10,7 @@ package sentry
 
 import (
 	"github.com/zerotohero-dev/aegis-core/env"
-	"log"
+	"github.com/zerotohero-dev/aegis-core/log"
 	"time"
 )
 
@@ -26,7 +26,7 @@ func Watch() {
 		case <-ticker.C:
 			err := fetchSecrets()
 			if err != nil {
-				log.Println("Could not fetch secrets", err.Error(), ". Will retry.")
+				log.InfoLn("Could not fetch secrets", err.Error(), ". Will retry.")
 				return
 			}
 		}
