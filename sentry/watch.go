@@ -15,10 +15,10 @@ import (
 )
 
 func exponentialBackoff(err error, successCount, errorCount,
-	successThreshold, errorThreshold int,
+	successThreshold, errorThreshold int64,
 	interval, initialInterval, maxInterval time.Duration,
-	factor int,
-) (time.Duration, int, int) {
+	factor int64,
+) (time.Duration, int64, int64) {
 	shrinkInterval := false
 	expandInterval := false
 	if err == nil {
@@ -40,7 +40,7 @@ func exponentialBackoff(err error, successCount, errorCount,
 	if err == nil {
 		// Reduce interval after N consecutive successes.
 		if shrinkInterval {
-			interval = time.Duration(int(interval) / factor)
+			interval = time.Duration(int64(interval) / factor)
 			// boundary check:
 			if interval < initialInterval {
 				interval = initialInterval
@@ -52,7 +52,7 @@ func exponentialBackoff(err error, successCount, errorCount,
 
 	// Back off after N consecutive failures.
 	if expandInterval {
-		interval = time.Duration(int(interval) * factor)
+		interval = time.Duration(int64(interval) * factor)
 		// boundary check:
 		if interval > maxInterval {
 			interval = maxInterval
@@ -68,15 +68,15 @@ func exponentialBackoff(err error, successCount, errorCount,
 // the location defined in the `AEGIS_SIDECAR_SECRETS_PATH` environment
 // variable (`/opt/aegis/secrets.json` by default).
 func Watch() {
-	maxInterval := env.SentinelMaxPollInterval()         // time.Minute * 2
-	factor := env.SentinelExponentialBackOffMultiplier() // 2, 1.5
-	successThreshold := env.SentinelSuccessThreshold()   // 3
-	errorThreshold := env.SentinelErrorThreshold()       // 2
+	maxInterval := env.SidecarMaxPollInterval()
+	factor := env.SidecarExponentialBackoffMultiplier()
+	successThreshold := env.SidecarSuccessThreshold()
+	errorThreshold := env.SidecarErrorThreshold()
 
-	interval := env.SentryPollInterval() // TODO: this should be milliseconds; right now it is seconds:: BREAKING CHANGE
+	interval := env.SidecarPollInterval() // TODO: this should be milliseconds; right now it is seconds:: BREAKING CHANGE
 	initialInterval := interval
-	successCount := 0
-	errorCount := 0
+	successCount := int64(0)
+	errorCount := int64(0)
 	for {
 		ticker := time.NewTicker(interval)
 		select {
