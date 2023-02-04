@@ -14,52 +14,65 @@ import (
 	"time"
 )
 
-func exponentialBackoff(err error, successCount, errorCount,
-	successThreshold, errorThreshold int64,
-	interval, initialInterval, maxInterval time.Duration,
-	factor int64,
+var maxInterval = env.SidecarMaxPollInterval()
+var factor = env.SidecarExponentialBackoffMultiplier()
+var successThreshold = env.SidecarSuccessThreshold()
+var errorThreshold = env.SidecarErrorThreshold()
+var initialInterval = env.SidecarPollInterval()
+
+func exponentialBackoff(
+	success bool, interval time.Duration, successCount, errorCount int64,
 ) (time.Duration, int64, int64) {
-	shrinkInterval := false
-	expandInterval := false
-	if err == nil {
-		successCount++
-		errorCount = 0
-		if successCount >= successThreshold {
-			shrinkInterval = true
-			successCount = 0
-		}
-	} else {
-		errorCount++
-		successCount = 0
-		if errorCount >= errorThreshold {
-			expandInterval = true
-			errorCount = 0
-		}
+	// #region Boundary Corrections
+	if factor < 1 {
+		factor = 1
 	}
+	if initialInterval > maxInterval {
+		initialInterval = maxInterval
+	}
+	// #endregion
 
-	if err == nil {
-		// Reduce interval after N consecutive successes.
+	// Decide whether to shrink, expand, or keep the interval the same
+	// based on the success and error count so far.
+	if success {
+		nextSuccessCount := successCount + 1
+
+		// We have a success, so the interval “may” shrink.
+		shrinkInterval := nextSuccessCount >= successThreshold
 		if shrinkInterval {
-			interval = time.Duration(int64(interval) / factor)
+			nextInterval := time.Duration(int64(interval) / factor)
+
 			// boundary check:
-			if interval < initialInterval {
-				interval = initialInterval
+			if nextInterval < initialInterval {
+				nextInterval = initialInterval
 			}
+
+			// Interval shrank.
+			return nextInterval, 0, 0
 		}
 
-		return interval, successCount, errorCount
+		// Success count increased, interval is intact.
+		return interval, nextSuccessCount, 0
 	}
 
-	// Back off after N consecutive failures.
+	nextErrorCount := errorCount + 1
+
+	// We have an error, so the interval “may” expand.
+	expandInterval := nextErrorCount >= errorThreshold
 	if expandInterval {
-		interval = time.Duration(int64(interval) * factor)
+		nextInterval := time.Duration(int64(interval) * factor)
+
 		// boundary check:
-		if interval > maxInterval {
-			interval = maxInterval
+		if nextInterval > maxInterval {
+			nextInterval = maxInterval
 		}
+
+		// Interval expanded.
+		return nextInterval, 0, 0
 	}
 
-	return interval, successCount, errorCount
+	// Error count increased, interval is intact.
+	return interval, 0, nextErrorCount
 }
 
 // Watch synchronizes the internal state of the sidecar by talking to
@@ -68,15 +81,10 @@ func exponentialBackoff(err error, successCount, errorCount,
 // the location defined in the `AEGIS_SIDECAR_SECRETS_PATH` environment
 // variable (`/opt/aegis/secrets.json` by default).
 func Watch() {
-	maxInterval := env.SidecarMaxPollInterval()
-	factor := env.SidecarExponentialBackoffMultiplier()
-	successThreshold := env.SidecarSuccessThreshold()
-	errorThreshold := env.SidecarErrorThreshold()
-
-	interval := env.SidecarPollInterval() // TODO: this should be milliseconds; right now it is seconds:: BREAKING CHANGE
-	initialInterval := interval
+	interval := initialInterval
 	successCount := int64(0)
 	errorCount := int64(0)
+
 	for {
 		ticker := time.NewTicker(interval)
 		select {
@@ -85,8 +93,7 @@ func Watch() {
 
 			// Update parameters based on success/failure.
 			interval, successCount, errorCount = exponentialBackoff(
-				err, successCount, errorCount, successThreshold,
-				errorThreshold, interval, initialInterval, maxInterval, factor,
+				err == nil, interval, successCount, errorCount,
 			)
 
 			if err != nil {
