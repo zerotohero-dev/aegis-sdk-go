@@ -50,28 +50,34 @@ func exponentialBackoff(err error, successCount, errorCount,
 		}
 	}
 
-	if err == nil {
-		// Reduce interval after N consecutive successes.
-		if shrinkInterval {
-			interval = time.Duration(int64(interval) / factor)
-			// boundary check:
-			if interval < initialInterval {
-				interval = initialInterval
-			}
+	// Note that `shrinkInterval` and `expandInterval` cannot be `true`
+	// at the same time.
+
+	// Reduce interval after N consecutive successes.
+	if shrinkInterval {
+		interval = time.Duration(int64(interval) / factor)
+
+		// boundary check:
+		if interval < initialInterval {
+			interval = initialInterval
 		}
 
-		return interval, successCount, errorCount
+		return interval, successCount, 0
 	}
 
-	// Back off after N consecutive failures.
+	// Or back off after N consecutive failures.
 	if expandInterval {
 		interval = time.Duration(int64(interval) * factor)
+
 		// boundary check:
 		if interval > maxInterval {
 			interval = maxInterval
 		}
+
+		return interval, 0, errorCount
 	}
 
+	// Or return everything as is.
 	return interval, successCount, errorCount
 }
 
