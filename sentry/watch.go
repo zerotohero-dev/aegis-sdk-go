@@ -35,40 +35,40 @@ func exponentialBackoff(
 	// Decide whether to shrink, expand, or keep the interval the same
 	// based on the success and error count so far.
 	if success {
-		// We have a success, so the interval “may” shrink.
-
 		nextSuccessCount := successCount + 1
 
+		// We have a success, so the interval “may” shrink.
 		shrinkInterval := nextSuccessCount >= successThreshold
 		if shrinkInterval {
-			interval = time.Duration(int64(interval) / factor)
+			nextInterval := time.Duration(int64(interval) / factor)
+
 			// boundary check:
-			if interval < initialInterval {
-				interval = initialInterval
+			if nextInterval < initialInterval {
+				nextInterval = initialInterval
 			}
 
 			// Interval shrank.
-			return interval, 0, 0
+			return nextInterval, 0, 0
 		}
 
 		// Success count increased, interval is intact.
 		return interval, nextSuccessCount, 0
 	}
 
-	// We have an error, so the interval “may” expand.
-
 	nextErrorCount := errorCount + 1
 
+	// We have an error, so the interval “may” expand.
 	expandInterval := nextErrorCount >= errorThreshold
 	if expandInterval {
-		interval = time.Duration(int64(interval) * factor)
+		nextInterval := time.Duration(int64(interval) * factor)
+
 		// boundary check:
-		if interval > maxInterval {
-			interval = maxInterval
+		if nextInterval > maxInterval {
+			nextInterval = maxInterval
 		}
 
 		// Interval expanded.
-		return interval, 0, 0
+		return nextInterval, 0, 0
 	}
 
 	// Error count increased, interval is intact.
