@@ -73,7 +73,7 @@ func Watch() {
 	successThreshold := env.SidecarSuccessThreshold()
 	errorThreshold := env.SidecarErrorThreshold()
 
-	interval := env.SidecarPollInterval() // TODO: this should be milliseconds; right now it is seconds:: BREAKING CHANGE
+	interval := env.SidecarPollInterval()
 	initialInterval := interval
 	successCount := int64(0)
 	errorCount := int64(0)
