@@ -9,7 +9,6 @@
 package sentry
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/pkg/errors"
@@ -96,15 +95,9 @@ func Fetch() (reqres.SecretFetchResponse, error) {
 		},
 	}
 
-	sr := reqres.SecretFetchRequest{}
-	md, err := json.Marshal(sr)
-	if err != nil {
-		return reqres.SecretFetchResponse{}, errors.Wrap(
-			err, "trouble generating payload",
-		)
-	}
+	log.TraceLn("Sentry:Fetch", p)
 
-	r, err := client.Post(p, "application/json", bytes.NewBuffer(md))
+	r, err := client.Get(p)
 	if err != nil {
 		return reqres.SecretFetchResponse{}, errors.Wrap(
 			err, "problem connecting to Aegis Safe API endpoint",
