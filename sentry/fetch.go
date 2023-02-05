@@ -77,7 +77,7 @@ func Fetch() (reqres.SecretFetchResponse, error) {
 		return errors.New("I don’t know you, and it’s crazy: '" + id.String() + "'")
 	})
 
-	p, err := url.JoinPath(env.SafeEndpointUrl(), "/v1/fetch")
+	p, err := url.JoinPath(env.SafeEndpointUrl(), "/workload/v1/secrets")
 	if err != nil {
 		return reqres.SecretFetchResponse{},
 			errors.New("problem generating server url")
