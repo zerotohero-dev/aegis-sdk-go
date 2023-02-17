@@ -10,6 +10,7 @@ package startup
 
 import (
 	"github.com/zerotohero-dev/aegis-core/env"
+	"github.com/zerotohero-dev/aegis-core/log"
 	"github.com/zerotohero-dev/aegis-sdk-go/sentry"
 	"os"
 	"time"
@@ -30,7 +31,9 @@ func Watch() {
 	for {
 		select {
 		case <-ticker.C:
+			log.InfoLn("init:: tick")
 			if initialized() {
+				log.InfoLn("initialized… exiting the init process")
 				os.Exit(0)
 			}
 		}
