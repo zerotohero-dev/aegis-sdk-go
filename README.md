@@ -67,7 +67,7 @@ kind: ClusterSPIFFEID
 metadata:
   name: aegis-workload-demo
 spec:
-  spiffeIDTemplate: "spiffe://aegis.z2h.dev/workload/aegis-workload-demo"
+  spiffeIDTemplate: "spiffe://aegis.ist/workload/aegis-workload-demo"
   podSelector:
     matchLabels:
       app.kubernetes.io/name: aegis-workload-demo
